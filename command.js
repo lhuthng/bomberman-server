@@ -1,63 +1,62 @@
 const roomManager = require('./room-manager');
-
+const playerManager = require('./player-manager');
+const utils = require('./utils');
+const players = playerManager.getPlayers();
 class Command {
     constructor(server) {
         const io = require('socket.io')(server);
+        
         io.on('connection', socket => {
-            console.log(`${socket} connected`);
-            
+            let pid;
+
+            //
+
+            const createPlayer = id => {
+                socket.emit('created player', id);
+                pid = id;
+            }
+            const createRoom = id => {
+                socket.emit('created room', id);
+                socket.join(id);
+            };
+            const joinRoom = (id, playerId) => {
+                socket.emit('joined room', id, playerId);
+                io.in(id).emit('another joins room', playerId);
+                socket.join(id);
+            };
+            const leaveRoom = (id, playerId) => {
+                io.in(id).emit('left room', playerId);
+                socket.leave(id);
+            };
+            const deleteRoom = () => {};
+            const promotePlayer = (id, hostId) => {
+                io.in(id).emit('promoted host', hostId);
+            }
+            const failedAction = (action) => (...args) => socket.emit(`failed ${action}`, ...args);
+            //
+
+            utils.packFunc(playerManager.createPlayer, { socket }, {
+                created: createPlayer,
+                failed: failedAction('creating player')
+            });
+            socket.on('create room', (name, hostId) =>  utils.packFunc(roomManager.createRoom, { name, hostId }, {
+                created: createRoom,
+                failed: failedAction('creating room')
+            }));
+            socket.on('join room', (id, playerId) => utils.packFunc(roomManager.joinRoom, { id, playerId }, {
+                joined: joinRoom,
+                failed: failedAction('joining room')
+            }));
+            socket.on('leave room', (id, playerId) => utils.packFunc(roomManager.leaveRoom, { id, playerId }, {
+                left: leaveRoom,
+                deleted: deleteRoom,
+                promoted: promotePlayer,
+                failed: failedAction('leaving room')
+            }));
             socket.on('disconnect', () => {
-                console.log(`${socket} disconnected`);
+                if (pid !== undefined) playerManager.deletePlayer({ id });
             });
         });
-        let roomId = 0, roomId2 = 0;;
-        const callback = (...args) => console.log(...args);
-        roomManager.createRoom({
-            name: "test", 
-            playerId: 1, 
-            callback: (type, id) => roomId = id
-        });
-        roomManager.createRoom({
-            name: "test2",
-            playerId: 10,
-            callback: (type, id) => roomId2 = id
-        });
-        roomManager.joinRoom({
-            id: roomId,
-            playerId: 2,
-            callback
-        });
-        roomManager.joinRoom({
-            id: roomId,
-            playerId: 3,
-            callback
-        });
-        roomManager.joinRoom({
-            id: roomId,
-            playerId: 4,
-            callback
-        });
-        roomManager.joinRoom({
-            id: roomId,
-            playerId: 5,
-            callback
-        });
-        roomManager.joinRoom({
-            id: roomId2,
-            playerId: 5,
-            callback
-        });
-        roomManager.leaveRoom({
-            id: roomId,
-            playerId: 3,
-            callback
-        });
-        roomManager.leaveRoom({
-            id: roomId,
-            playerId: 1,
-            callback
-        });
-        console.log(roomManager.getRooms());
     }
 }
 

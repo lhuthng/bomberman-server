@@ -27,4 +27,7 @@ utils.createResChain = (...rest) => {
     return (args) => res.call({}, args);
 }
 
+utils.packFunc = (func, props, statusCallback) => {
+    func({...props, callback: (status, ...args) => statusCallback[status](...args)});
+}
 module.exports = utils;
