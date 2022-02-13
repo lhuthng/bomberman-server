@@ -13,7 +13,6 @@ utils.provoke = (callback, ...args) => {
     callback && callback(...args);
 }
 
-
 utils.createResChain = (...rest) => {
     const chain = (res, ...rest) => {
         if (res === undefined) return;

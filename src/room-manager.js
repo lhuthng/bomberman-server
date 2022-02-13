@@ -5,6 +5,7 @@ const roomManager = () => {
 
     const validateId = id => rooms[id] !== undefined;
     const validateRoom = (args, _, next) => {
+        console.log(args);
         const { id, callback } = args;
         if (validateId(id)) next();
         else provoke(callback, "failed", "invalid room");
@@ -24,6 +25,9 @@ const roomManager = () => {
         provoke(callback, "created", id, name);
     });
     const deleteRoom = createResChain(validateRoom, ({ id, callback }) => {
+        console.log(rooms[id]);
+        delete rooms[id];
+        console.log(rooms[id]);
         provoke(callback, "deleted", id);
     });
     const joinRoom = createResChain(validateRoom, ({ id, playerId, callback }) => {
@@ -46,7 +50,10 @@ const roomManager = () => {
             rooms[id].hostId = rooms[id].playerIds[0];
             provoke(callback, "promoted", id, rooms[id].hostId);
         }
-        else deleteRoom(id); 
+        else {
+            console.log(id);
+            deleteRoom({ id })
+        }; 
     });
     return {
         getRooms, createRoom, deleteRoom, joinRoom, leaveRoom

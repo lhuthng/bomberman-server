@@ -23,15 +23,18 @@ class Socket {
                 socket.emit('received rooms', array);
             }
             const createRoom = id => {
+                playerManager.setRoomId(pid, id);
                 socket.emit('created room', id);
                 socket.join(id);
             };
             const joinRoom = (id, playerId) => {
+                playerManager.setRoomId(playerId, id);
                 socket.emit('joined room', id, playerId);
                 io.in(id).emit('another joins room', playerId);
                 socket.join(id);
             };
             const leaveRoom = (id, playerId) => {
+                playerManager.setRoomId(playerId);
                 io.in(id).emit('left room', playerId);
                 socket.leave(id);
             };
@@ -64,7 +67,15 @@ class Socket {
                 promoted: promotePlayer,
                 failed: failedAction('leaving room')
             }));
-            socket.on('disconnect', () => playerManager.deletePlayer({ id: pid }));
+            socket.on('disconnect', () => {
+                const roomId = playerManager.getRoomId(pid);
+                console.log(roomId);
+                if (roomId) {
+                    playerManager.setRoomId(roomId);
+                    roomManager.leaveRoom({ id: roomId });
+                }
+                playerManager.deletePlayer({ id: pid });
+            });
         });
     }
 }
