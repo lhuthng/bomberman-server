@@ -12,9 +12,19 @@ const playerManager = () => {
     const getRoomId = id => {
         if (players[id]) return players[id].roomId;
     };
-    const validatePlayer = createResChain(({ id, callback }, _, next) => {
-        if (validateId(id)) next();
+    const validatePlayer = ({ id, callback }, shared, next) => {
+        if (validateId(id)) {
+            shared.player = players[id];
+            next();
+        }
         else provoke(callback, "failed", "invalid player");
+    };
+    const updateName = createResChain(validatePlayer, ({ newName, callback }, shared) => {
+        if (newName !== "") {
+            shared.player.name = newName;
+            provoke(callback, "updated", newName);
+        }
+        else provoke(callback, "failed", "empty name");
     });
     const createPlayer = createResChain(({ socket, callback }) => {
         const id = generateUniqueId(30, validateId);
@@ -29,7 +39,7 @@ const playerManager = () => {
         delete players[id];
         provoke(callback, "deleted", id);
     });
-    return { getName, setRoomId, getRoomId, getPlayers, createPlayer, deletePlayer };
+    return { getName, setRoomId, getRoomId, updateName, getPlayers, createPlayer, deletePlayer };
 }
 
 const manager = playerManager();

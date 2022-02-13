@@ -15,6 +15,10 @@ class Socket {
                 socket.emit('created player', id, name);
                 pid = id;
             }
+            const updateName = (name) => {
+                console.log(name);
+                socket.emit('updated name', name);
+            }
             const getRooms = rooms => {
                 const array = Object.values(rooms).map(room => ({
                     ...room,
@@ -49,6 +53,10 @@ class Socket {
                 created: createPlayer,
                 failed: failedAction('creating player')
             });
+            socket.on('update name', (newName) => utils.packFunc(playerManager.updateName, { newName, id: pid }, {
+                updated: updateName,
+                failed: failedAction('updating name')
+            }));
             socket.on('get rooms', () => utils.packFunc(roomManager.getRooms, {}, {
                 received: getRooms,
                 failed: failedAction('getting rooms')
