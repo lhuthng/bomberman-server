@@ -30,4 +30,15 @@ utils.createResChain = (...rest) => {
 utils.packFunc = (func, props, statusCallback) => {
     func({...props, callback: (status, ...args) => statusCallback[status](...args)});
 }
+utils.constrain = (value, min, max) => {
+    return value < min ? min : value > max ? max : value;
+}
+utils.randomPick = (separator, pools) => {
+    const result = [];
+    for (const pool in pools) {
+        const index = (Math.random() * pool.length) >> 0;
+        result.push(pool[index]);
+    }
+    return result.join(separator);
+}
 module.exports = utils;

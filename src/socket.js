@@ -13,6 +13,7 @@ class Socket {
 
             const createPlayer = (id, name) => {
                 socket.emit('created player', id, name);
+                console.log(pid);
                 pid = id;
             }
             const updateName = (name) => {
@@ -26,21 +27,32 @@ class Socket {
                 }));
                 socket.emit('received rooms', array);
             }
-            const createRoom = id => {
+            const createRoom = (room) => {
+                const { id } = room;
                 playerManager.setRoomId(pid, id);
-                socket.emit('created room', id);
+                socket.emit('created room', {
+                    ...room,
+                    playerNames: room.playerIds.map(id => playerManager.getName(id))
+                });
                 socket.join(id);
             };
-            const joinRoom = (id, playerId) => {
+            const joinRoom = (room, index) => {
+                const { id } = room;
+                const playerId = room.playerIds[index]
                 playerManager.setRoomId(playerId, id);
-                socket.emit('joined room', id, playerId);
-                io.in(id).emit('another joins room', playerId);
+                socket.emit('joined room', {
+                    ...room,
+                    playerNames: room.playerIds.map(id => playerManager.getName(id))
+                });
+                io.in(id).emit('broadcast joined room', playerId, playerManager.getName(playerId), index);
+                console.log("join", id);
                 socket.join(id);
             };
             const leaveRoom = (id, playerId) => {
-                playerManager.setRoomId(playerId);
-                io.in(id).emit('left room', playerId);
+                playerManager.setRoomId(playerId, undefined);
+                socket.emit('left room');
                 socket.leave(id);
+                io.in(id).emit('broadcast left room', playerId);
             };
             const deleteRoom = () => {};
             const promotePlayer = (id, hostId) => {
@@ -64,7 +76,7 @@ class Socket {
                 received: getRooms,
                 failed: failedAction('getting rooms')
             }));
-            socket.on('create room', (name) =>  utils.packFunc(roomManager.createRoom, { name, hostId: pid }, {
+            socket.on('create room', (capacity) =>  utils.packFunc(roomManager.createRoom, { capacity, hostId: pid }, {
                 created: createRoom,
                 failed: failedAction('creating room')
             }));
@@ -80,10 +92,13 @@ class Socket {
             }));
             socket.on('disconnect', () => {
                 const roomId = playerManager.getRoomId(pid);
-                console.log(roomId);
-                if (roomId) {
-                    playerManager.setRoomId(roomId);
-                    roomManager.leaveRoom({ id: roomId });
+                if (roomId !== undefined) {
+                    utils.packFunc(roomManager.leaveRoom, { id: roomId, playerId: pid }, {
+                        left: leaveRoom,
+                        deleted: deleteRoom,
+                        promoted: promotePlayer,
+                        failed: failedAction('leaving room')
+                    });
                 }
                 playerManager.deletePlayer({ id: pid });
             });
