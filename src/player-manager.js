@@ -5,7 +5,10 @@ const playerManager = () => {
     const getPlayers = () => players;
 
     const validateId = id => players[id] !== undefined;
-    const getName = id => players[id].name;
+    const getName = id => {
+        if (players[id] === undefined) console.log(id);
+        return players[id] && players[id].name;
+    }
     const setRoomId = (id, roomId) => {
         if (players[id]) players[id].roomId = roomId;
     }

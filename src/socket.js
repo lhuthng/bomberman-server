@@ -57,6 +57,9 @@ class Socket {
                 updated: updateName,
                 failed: failedAction('updating name')
             }));
+            socket.on('get room', (id) => utils.packFunc(roomManager.getRoom, { id }, {
+                failed: failedAction('getting room')
+            }));
             socket.on('get rooms', () => utils.packFunc(roomManager.getRooms, {}, {
                 received: getRooms,
                 failed: failedAction('getting rooms')
